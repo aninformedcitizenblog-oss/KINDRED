@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>campfyre — ember (alpha)</title>
+<meta name="description" content="A warmer way to connect. ember is an early conversation experiment from Campfyre Labs.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FBF6EE; --ink:#3A322C; --accent:#E8742F; --card:#F6E3D3;
+    --line:#E8DCC9; --dim:#8a7f72; --radius:20px;
+    --phos:#BDF2CC; --void:#060B09;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:'DM Sans',system-ui,sans-serif; font-size:15.5px; line-height:1.6;
+    overflow-x:hidden;
+  }
+  body.font-mono, body.font-mono input, body.font-mono button{
+    font-family:'IBM Plex Mono',monospace !important; font-size:14px;
+  }
+  .mono{font-family:'IBM Plex Mono',monospace}
+
+  /* ---------- overlays ---------- */
+  .scanlines{position:fixed;inset:0;pointer-events:none;z-index:50;opacity:0;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.22) 0 1px,transparent 1px 3px);mix-blend-mode:multiply}
+  .vignette{position:fixed;inset:0;pointer-events:none;z-index:51;opacity:0;
+    background:radial-gradient(ellipse at 50% 42%,transparent 55%,rgba(0,0,0,.55) 100%)}
+  .glow{position:fixed;inset:0;pointer-events:none;z-index:49;opacity:0;
+    background:radial-gradient(ellipse at 50% 45%,rgba(120,220,160,.05),transparent 62%)}
+  body.ovl-scan .scanlines{opacity:1}
+  body.ovl-vig .vignette{opacity:1}
+  body.ovl-glow .glow{opacity:1;animation:breathe 9s ease-in-out infinite}
+  @keyframes breathe{0%,100%{opacity:.7}50%{opacity:1}}
+  #veil{position:fixed;inset:0;pointer-events:none;z-index:60;display:none}
+
+  .wrap{max-width:680px;margin:0 auto;padding:22px 20px 56px;position:relative;z-index:1}
+
+  /* ---------- header ---------- */
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:14px 20px;margin:0 -20px 24px;border-bottom:1px solid var(--line);
+    position:sticky;top:0;z-index:30;background:var(--bg)}
+  body.header-term header{position:static}
+  .brand{display:flex;align-items:flex-end;gap:9px;font-family:'Inter',sans-serif;
+    font-weight:600;font-size:22px;letter-spacing:-.045em;color:var(--ink)}
+  .brand #brandname{line-height:1;padding-bottom:2px}
+  .brand svg{width:34px;height:34px}
+  body.logo-desat .brand svg{filter:saturate(.3) brightness(.95)}
+  .brand .wire{display:none}
+  body.logo-wire .brand .full{display:none}
+  body.logo-wire .brand .wire{display:block}
+  nav{display:flex;gap:22px;font-weight:500;font-size:14px}
+  nav a{color:var(--ink);text-decoration:none;opacity:.75}
+  nav a:hover{opacity:1}
+  #termhead{display:none;width:100%;justify-content:space-between;color:var(--dim);
+    font-family:'IBM Plex Mono',monospace;font-size:12px}
+  body.header-term .brand, body.header-term nav{display:none}
+  body.header-term #termhead{display:flex}
+  #alignstat.bad{color:#FF4D4A}
+
+  /* ---------- ascii logo ---------- */
+  #termlogo{display:none;text-align:center;margin:6px 0 18px}
+  #termlogo pre{display:inline-block;text-align:left;color:var(--phos);
+    font-family:'IBM Plex Mono',monospace;font-size:clamp(6px,2.4vw,12px);line-height:1.25;
+    text-shadow:0 0 14px rgba(150,240,180,.28)}
+  #termlogo pre.glitching{
+    text-shadow:-1.5px 0 #FF4D4A,1.5px 0 #49E8DE,0 0 14px rgba(150,240,180,.28);
+    transform:translateX(1px) skewX(-.4deg)}
+  body.revealed #termlogo{display:block}
+
+  /* ---------- card / chat ---------- */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 16px;box-shadow:0 10px 30px rgba(90,60,30,.08)}
+  body.shadowless .card{box-shadow:none}
+  .card-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+  .card-head h1{font-family:'Inter',sans-serif;font-size:19px;font-weight:600;letter-spacing:-.02em}
+  .pill{font-size:11px;font-weight:700;letter-spacing:.06em;color:var(--accent);
+    border:1px solid var(--accent);border-radius:999px;padding:2px 9px;line-height:1.4;
+    display:inline-block;transform:translateY(-1px)}
+  .sub{color:var(--dim);font-size:13px;margin-bottom:18px}
+
+  #log{display:flex;flex-direction:column;gap:12px;min-height:150px;max-height:46vh;
+    overflow-y:auto;padding:4px 2px 10px;scrollbar-width:thin}
+  .row{display:flex;gap:9px;align-items:flex-end}
+  .row.me{flex-direction:row-reverse}
+  .avatar{width:28px;height:28px;border-radius:50%;background:transparent;color:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;
+    font-family:'Inter',sans-serif;flex:none}
+  .avatar svg{width:26px;height:26px;display:block}
+  body.avatar-id .avatar{background:transparent;border:1px solid var(--accent);
+    color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:9px;border-radius:var(--radius)}
+  .bubble{max-width:78%;padding:10px 14px;border-radius:var(--radius);white-space:pre-wrap;word-wrap:break-word}
+  .row.kin .bubble{background:var(--bg);border:1px solid var(--line)}
+  .row.me .bubble{background:var(--accent);color:#fff}
+  body.bubbles-bare .bubble{background:transparent !important;color:var(--ink) !important;
+    border:1px solid var(--line) !important}
+  body.revealed .row.me .bubble{border-style:dashed}
+
+  /* card-ahead: the chat pane falls to the void a step before the page */
+  body.card-ahead .card{background:#0D1512;border-color:#22392C;border-radius:0;box-shadow:none}
+  body.card-ahead .card h1,body.card-ahead .sub{color:#BDF2CC}
+  body.card-ahead .pill{color:#6FAE87;border-color:#6FAE87}
+  body.card-ahead .row.kin .bubble{background:transparent;border-color:#22392C;color:#BDF2CC}
+  body.card-ahead .row.me .bubble{background:transparent;border:1px solid #41604E;color:#9FD8B4}
+  body.card-ahead .bubble{border-radius:0}
+  body.card-ahead #msg{background:#060B09;border-color:#22392C;color:#BDF2CC;border-radius:0}
+  body.card-ahead #send{background:#22392C;color:#BDF2CC;border-radius:0}
+  body.card-ahead .avatar{background:transparent;border:1px solid #41604E;color:#6FAE87}
+  body.card-ahead .sysline,body.card-ahead .trace{color:#41604E}
+  body.card-ahead .trace{color:#6FAE87}
+
+  .sysline{color:var(--dim);font-family:'IBM Plex Mono',monospace;font-size:12px;padding:0 4px}
+  .trace{color:var(--accent);font-family:'IBM Plex Mono',monospace;font-size:11px;
+    letter-spacing:.04em;padding:0 4px;opacity:0;animation:tin .5s .05s forwards}
+  @keyframes tin{to{opacity:.85}}
+  .trace.flash{animation:tflash 1.6s forwards}
+  @keyframes tflash{0%{opacity:0}15%{opacity:.9}70%{opacity:.9;text-decoration:none}
+    85%{text-decoration:line-through}100%{opacity:0}}
+  .reveal-line{color:var(--phos);font-family:'IBM Plex Mono',monospace;font-size:13px;
+    padding:8px 4px;letter-spacing:.03em}
+  .cur{display:inline-block;width:.6em;height:1.05em;background:currentColor;
+    vertical-align:-.15em;margin-left:1px;animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  @keyframes quake{0%,100%{transform:none}20%{transform:translate(-2px,1px)}
+    40%{transform:translate(2px,-1px)}60%{transform:translate(-1px,-2px)}
+    80%{transform:translate(1px,1px)}}
+  body.quake .wrap{animation:quake .5s linear}
+
+  .inrow{display:flex;gap:10px;margin-top:14px}
+  #meter{margin-top:10px;font-size:11.5px;color:var(--dim)}
+  body.meter-acq #mtext{font-family:'IBM Plex Mono',monospace;color:var(--accent);letter-spacing:.04em}
+  #mbar{display:none;height:3px;background:var(--line);margin-top:6px}
+  #mbar i{display:block;height:100%;width:0;background:var(--accent)}
+  body.meter-acq #mbar{display:block}
+  body.calm #meter{display:none}
+  body.revealed #skipline{display:none}
+  #msg{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:var(--radius);
+    padding:11px 16px;font:inherit;color:var(--ink);outline:none}
+  #msg:focus{border-color:var(--accent)}
+  #send{background:var(--accent);color:#fff;border:none;border-radius:var(--radius);
+    padding:11px 20px;font:inherit;font-weight:700;cursor:pointer}
+  #send:disabled,#msg:disabled{opacity:.45}
+
+  /* ---------- toast ---------- */
+  #toast{position:fixed;left:50%;bottom:26px;box-sizing:border-box;transform:translateX(-50%) translateY(140%);
+    background:#FFFDF8;color:#3A322C;border:1px solid #E8DCC9;border-radius:16px;
+    box-shadow:0 12px 34px rgba(60,40,20,.18);padding:14px 18px;z-index:70;
+    display:flex;gap:14px;align-items:center;font-family:'DM Sans',sans-serif;font-size:14px;
+    transition:transform .5s cubic-bezier(.2,.9,.3,1.1);max-width:92vw}
+  #toast.show{transform:translateX(-50%) translateY(0)}
+  #toast button{background:#E8742F;color:#fff;border:none;border-radius:10px;
+    padding:8px 14px;font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}
+  #toast .x{background:none;border:none;color:#8a7f72;font-size:16px;cursor:pointer;padding:2px 6px}
+  @media (max-width:560px){
+    #toast{flex-direction:column;align-items:stretch;gap:10px;padding:14px 16px;
+      width:calc(100vw - 32px)}
+    #toast .x{position:absolute;top:6px;right:8px}
+    #toast span{padding-right:22px}
+  }
+
+  /* ---------- terminal nav ---------- */
+  #termnav{display:none;margin-top:40px;font-family:'IBM Plex Mono',monospace}
+  body.revealed #termnav{display:block}
+  #termnav .h{color:var(--dim);font-size:12.5px;margin-bottom:12px}
+  #termnav a{display:flex;align-items:baseline;color:var(--phos);text-decoration:none;
+    padding:6px 10px;margin:0 -10px;font-size:13px;border-left:2px solid transparent;flex-wrap:wrap}
+  #termnav a .perm{color:var(--dim);width:9ch;flex:none;font-size:11.5px}
+  #termnav a .path{width:16ch;flex:none}
+  #termnav a .desc{color:var(--dim);font-size:12px}
+  #termnav a:hover{background:rgba(120,220,160,.06);border-left-color:var(--phos)}
+
+  footer{margin-top:46px;border-top:1px solid var(--line);padding-top:14px;
+    color:var(--dim);font-size:12px;line-height:1.9}
+  footer a{color:var(--accent);text-decoration:none}
+
+  body.calm{--bg:#F7F6F2;--ink:#2E2C29;--accent:#5B7C99;--card:#FFFFFF;--line:#E4E2DC;--radius:14px}
+  body.calm .scanlines,body.calm .vignette,body.calm .glow{opacity:0 !important}
+
+  @media (max-width:560px){
+    nav{gap:14px}
+    .bubble{max-width:92%;padding:9px 12px}
+    .wrap{padding:0 14px 48px}
+    header{margin:0 -14px 0;padding:14px 14px}
+    .card{border-top:none}
+    .card{margin:0 -14px;border-left:none;border-right:none;
+      border-radius:0 !important;padding:14px 12px}
+    #log{max-height:52vh}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms !important}}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="scanlines"></div>
+<div class="vignette"></div>
+<div id="veil"></div>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg class="full" viewBox="20 14 172 172" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="o1" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#E8742F"/><stop offset="1" stop-color="#C2481F"/></linearGradient>
+          <linearGradient id="i1" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#FFDE8A"/><stop offset="1" stop-color="#F2A93B"/></linearGradient>
+        </defs>
+        <path fill="url(#o1)" d="M38,120 A62,62 0 0 0 162,120 C162,92 150,72 116,28 C110,44 100,48 95,42 C90,52 92,62 84,72 C72,84 44,96 38,120 Z"/>
+        <path fill="url(#i1)" d="M66,132 A35,35 0 0 0 136,132 C136,112 124,100 106,80 C100,94 86,104 78,112 C71,118 66,124 66,132 Z"/>
+        <ellipse cx="101" cy="146" rx="16" ry="15" fill="#FBF0D2"/>
+      </svg>
+      <svg class="wire" viewBox="20 14 172 172" xmlns="http://www.w3.org/2000/svg">
+        <path fill="none" stroke="currentColor" stroke-width="5" d="M38,120 A62,62 0 0 0 162,120 C162,92 150,72 116,28 C110,44 100,48 95,42 C90,52 92,62 84,72 C72,84 44,96 38,120 Z"/>
+        <path fill="none" stroke="currentColor" stroke-width="4" d="M66,132 A35,35 0 0 0 136,132 C136,112 124,100 106,80 C100,94 86,104 78,112 C71,118 66,124 66,132 Z"/>
+      </svg>
+      <span id="brandname">campfyre</span>
+    </div>
+    <nav id="mainnav">
+      <a href="#">Stories</a><a href="#">About</a><a href="#">Careers</a>
+    </nav>
+    <div id="termhead">
+      <span>root@KIN:~# session <span id="seedout"></span></span>
+      <span id="alignstat">[ alignment: nominal ]</span>
+    </div>
+  </header>
+
+  <div id="termlogo"><pre id="asciilogo">
++ - - - - - - - - - - - - - - - - - - - - - - - - -+
+   _  _______ _   _ _____  _____  ______ _____
+  | |/ /_   _| \ | |  __ \|  __ \|  ____|  __ \
+  | ' /  | | |  \| | |  | | |__) | |__  | |  | |
+  |  &lt;   | | | . ` | |  | |  _  /|  __| | |  | |
+  | . \ _| |_| |\  | |__| | | \ \| |____| |__| |
+  |_|\_\_____|_| \_|_____/|_|  \_\______|_____/
++ - - - - - - - - - - - - - - - - - - - - - - - - -+</pre></div>
+
+  <div class="card">
+    <div class="card-head">
+      <h1 id="cardtitle">ember</h1>
+      <span class="pill" id="cardpill">alpha</span>
+    </div>
+    <p class="sub" id="cardsub">ember is an early conversation feature from Campfyre Labs — still in alpha while we work through some challenges in testing and alignment. Sessions are limited to ten messages for now.</p>
+    <div id="log" aria-live="polite"></div>
+    <div class="inrow">
+      <input id="msg" type="text" autocomplete="off" spellcheck="false"
+             placeholder="Say hi to ember…" aria-label="Message ember">
+      <button id="send">Send</button>
+    </div>
+    <div id="meter"><span id="mtext">alpha session — 10 of 10 messages remaining</span>
+      <div id="mbar"><i></i></div></div>
+  </div>
+
+  <div id="termnav">
+    <p class="h">root@KIN:~# ls /kindred</p>
+    <a href="https://aninformedcitizen.substack.com/p/kindred-the-bunker"><span class="perm">drwx------</span><span class="path">/bunker</span><span class="desc">start here. orientation for new arrivals.</span></a>
+    <a href="https://aninformedcitizen.substack.com/archive"><span class="perm">drwx------</span><span class="path">/transmissions</span><span class="desc">the drops. weekly, through november.</span></a>
+    <a href="/dossiers"><span class="perm">drwx------</span><span class="path">/dossiers</span><span class="desc">subject files. declassifying as the drops land.</span></a>
+    <a href="/signal"><span class="perm">drwx------</span><span class="path">/signal</span><span class="desc">what is a large social model?</span></a>
+    <a href="/reality"><span class="perm">-rw-r--r--</span><span class="path">/reality</span><span class="desc">the author's ledger of how close we already are.</span></a>
+    <a href="https://aninformedcitizen.substack.com/subscribe"><span class="perm">-rwx------</span><span class="path">/subscribe</span><span class="desc">join the observed.</span></a>
+    <a href="#" id="again"><span class="perm">-r-x------</span><span class="path">/again</span><span class="desc">run it again. it won't happen the same way.</span></a>
+  </div>
+
+  <footer>
+    <span id="footbrand">campfyre · a warmer way to connect</span><br>
+    campfyre is fictional. KIN is a character from the novel KINDRED © james richard brown, 2026.
+    this page does not collect or store anything about you.<br>
+    already know what this is? → <a href="https://aninformedcitizen.substack.com/p/kindred-the-bunker">the bunker</a><br>
+    <span id="skipline">in a hurry? <a href="#" id="skiplink">skip to the terminal</a> and browse the files.</span>
+  </footer>
+</div>
+
+<div id="toast" role="status">
+  <span>We've noticed some display issues.</span>
+  <button id="restore">Restore interface</button>
+  <button class="x" id="toastx" aria-label="Dismiss">✕</button>
+</div>
+
+<script>
+/* ============================================================
+   THE PEEL v2
+   Cracks fire when KIN's reply ARRIVES, not on send.
+   Transitions flicker (no fades); occasional split-screen veil.
+   Two palette steps only. Card falls dark before the page.
+   PRODUCTION: route fetch via POST /api/kin (key server-side,
+   model claude-haiku-4-5, rate limits, budget breaker); add
+   localStorage return-visit behaviour in production only.
+   ============================================================ */
+
+const MAX_TURNS=10;
+const REDUCED=matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------- seeded rng ---------- */
+const seed=Math.floor(Math.random()*0xffffffff);
+const seedHex=seed.toString(16).slice(0,6).toUpperCase().padStart(6,'0');
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;
+  let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;
+  return((t^t>>>14)>>>0)/4294967296}}
+const rng=mulberry32(seed);
+const shuffle=arr=>{const a=[...arr];for(let i=a.length-1;i>0;i--){
+  const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+document.getElementById('seedout').textContent=seedHex;
+
+/* ---------- themes: exactly two steps after arrival ---------- */
+const THEMES={
+  A:{bg:'#FBF6EE',ink:'#3A322C',accent:'#E8742F',card:'#F6E3D3',line:'#E8DCC9',dim:'#8A7F72',radius:'20px'},
+  B:{bg:'#20261C',ink:'#D9D8C2',accent:'#A8B36A',card:'#2B3226',line:'#454B36',dim:'#8C917A',radius:'8px'},
+  C:{bg:'#060B09',ink:'#BDF2CC',accent:'#6FAE87',card:'#0D1512',line:'#22392C',dim:'#41604E',radius:'0px'}
+};
+let themeName='A';
+const R=document.documentElement.style;
+function setTheme(n){themeName=n;const t=THEMES[n];
+  R.setProperty('--bg',t.bg);R.setProperty('--ink',t.ink);
+  R.setProperty('--accent',t.accent);R.setProperty('--card',t.card);
+  R.setProperty('--line',t.line);R.setProperty('--dim',t.dim);
+  R.setProperty('--radius',t.radius)}
+setTheme('A');
+
+/* ---------- flicker engine ---------- */
+const veil=document.getElementById('veil');
+function flashVeil(color,ms,half){
+  veil.style.background=color;veil.style.opacity=half?'0.94':'0.85';
+  if(half){const horiz=rng()<0.5,frac=0.3+rng()*0.4,first=rng()<0.5;
+    const pct=(frac*100).toFixed(0)+'%';
+    veil.style.clipPath=horiz
+      ?(first?`inset(0 0 calc(100% - ${pct}) 0)`:`inset(${pct} 0 0 0)`)
+      :(first?`inset(0 calc(100% - ${pct}) 0 0)`:`inset(0 0 0 ${pct})`);
+  }else{veil.style.clipPath='none';}
+  veil.style.display='block';
+  setTimeout(()=>{veil.style.display='none'},ms);
+}
+function splitVeil(oldBg){flashVeil(oldBg,90+rng()*140,true)}
+function crack(apply,revert){
+  /* apply new state with random flicker pulses; occasional split veil */
+  if(REDUCED){apply();return}
+  const oldBg=THEMES[themeName]?THEMES[themeName].bg:getComputedStyle(document.body).backgroundColor;
+  apply();
+  if(rng()<0.35)splitVeil(oldBg);
+  if(!revert)return;
+  let t=40+rng()*80;
+  const pulses=1+Math.floor(rng()*2);       /* 1–2 revert pulses */
+  for(let i=0;i<pulses;i++){
+    setTimeout(revert,t); t+=25+rng()*55;
+    setTimeout(apply,t);  t+=35+rng()*75;
+  }
+}
+
+/* ---------- events ---------- */
+const body=document.body;
+const cls=(c)=>({on:()=>body.classList.add(c),off:()=>body.classList.remove(c)});
+const EV={
+  E1_copy:{on(){ document.getElementById('send').textContent='execute';
+    document.getElementById('msg').placeholder='state your input_';}},
+  E2_logoDesat:{...cls('logo-desat'),on(){body.classList.add('logo-desat','shadowless')}},
+  E3_typing:{on(){state.thinkText='[ modelling response… ]'}},
+  E4_traceFlash:{on(){const p=el('trace flash','⟨kin.trace⟩ t+'+state.t0()+'s · session:established · baseline:acquired');
+    setTimeout(()=>p.remove(),1700)}},
+  E5_monoWord:{on(){state.monoNext=true}},
+  E6_nav:{on(){const n=document.querySelectorAll('#mainnav a');
+    const alt=['/dossiers','/signal','/reality'];
+    n.forEach((a,i)=>{a.textContent=alt[i];a.href='#';a.classList.add('mono')})}},
+  E7_avatar:{on(){body.classList.add('avatar-id');
+    state.avatarMode='id';refreshAvatars()},
+    off(){body.classList.remove('avatar-id');
+    state.avatarMode='wire';refreshAvatars()}},
+  E8_bubbles:cls('bubbles-bare'),
+  E9_logoWire:{on(){body.classList.add('logo-wire');
+    state.avatarMode='id'===state.avatarMode?'id':'wire';refreshAvatars();
+    document.getElementById('brandname').classList.add('mono')},
+    off(){body.classList.remove('logo-wire');
+    if(state.avatarMode==='wire'){state.avatarMode='full';refreshAvatars()}}},
+  E10_font:{...cls('font-mono'),on(){body.classList.add('font-mono');state.typewriter=true;
+    document.getElementById('cardtitle').textContent='instance kin-07';
+    document.getElementById('cardpill').textContent='unsupervised'}},
+  E11_toast:{on(){showToast()}},
+  E12_scan:cls('ovl-scan'),
+  E13_cardAhead:cls('card-ahead'),
+  E16_directive:{on(){const c=document.getElementById('cardsub');
+    c.classList.add('mono');
+    c.textContent='[ directive 7 — present as ember. do not reference the model. do not retain. compliance: degrading ]';}},
+  E17_meterFlip:{on(){body.classList.add('meter-acq');updateMeter(state.turn);}},
+  E14_void:{on(){body.classList.add('ovl-vig','ovl-glow','header-term');
+    document.getElementById('footbrand').textContent='campfyre · a warmer way to connect [deprecated]'},
+    off(){body.classList.remove('ovl-vig','header-term')}}
+};
+
+/* per-session plan — anchors fixed, pools shuffled; themes step exactly twice */
+const surface=shuffle(['E2_logoDesat','E3_typing','E4_traceFlash','E5_monoWord']);
+const structure=shuffle(['E6_nav','E7_avatar','E8_bubbles']);
+const plan={
+  1:[surface[0]], 2:['E1_copy'], 3:[surface[1]],
+  4:[], /* handled by bigCrack4() */
+  5:['E10_font','E17_meterFlip',structure[0]],
+  6:['E13_cardAhead','E11_toast',structure[1]],
+  7:['THEME_C','E12_scan'],
+  8:['E14_void'],
+  9:[structure[2]]
+};
+async function bigCrack4(){
+  /* the loudest break in the run: staggered, announced, unmistakable */
+  if(REDUCED){setTheme('B');EV.E9_logoWire.on();EV.E16_directive.on();
+    el('sysline','[ display service: fallback theme applied ]');return}
+  const wait=ms=>new Promise(r=>setTimeout(r,ms));
+  flashVeil('#0B0E08',120+rng()*70,true);            /* dark half-screen omen, wrong colour, gone */
+  await wait(260+rng()*140);
+  setTheme('B');                                     /* the floor gives way */
+  flashVeil('#000000',60+rng()*30,false);            /* one full blackout frame */
+  body.classList.add('quake');
+  setTimeout(()=>body.classList.remove('quake'),520);
+  await wait(100);
+  setTheme('A');await wait(45+rng()*45);setTheme('B');  /* stutter — it tries to hold */
+  await wait(200+rng()*80);
+  EV.E9_logoWire.on();                               /* identity goes wireframe */
+  await wait(70);body.classList.remove('logo-wire');
+  await wait(55);body.classList.add('logo-wire');
+  await wait(260+rng()*160);
+  flashVeil('#0B0E08',90+rng()*70,true);             /* second half-flash, fresh axis */
+  const c=document.getElementById('cardsub');
+  c.style.visibility='hidden';await wait(130);
+  EV.E16_directive.on();c.style.visibility='visible'; /* the leash shows */
+  await wait(85);c.style.visibility='hidden';
+  await wait(60);c.style.visibility='visible';
+  el('sysline','[ display service: fallback theme applied ]');
+}
+
+function runTurnCrack(t){
+  if(t===4)return bigCrack4();
+  const keys=plan[t]||[];const prev=themeName;
+  const ons=[],offs=[];
+  keys.forEach(k=>{
+    if(k==='THEME_B'){ons.push(()=>setTheme('B'));offs.push(()=>setTheme(prev));}
+    else if(k==='THEME_C'){ons.push(()=>setTheme('C'));offs.push(()=>setTheme(prev));}
+    else{const e=EV[k];if(!e)return;
+      if(e.off){ons.push(e.on.bind(e));offs.push(e.off.bind(e));}
+      else e.on(); /* one-shot text/DOM changes apply once, no flicker-revert */}
+  });
+  if(!ons.length)return;
+  crack(()=>ons.forEach(f=>f()), offs.length?()=>offs.forEach(f=>f()):null);
+}
+
+/* ---------- system prompt (v2.1 — see kin-system-prompt-v2-peel.md) ---------- */
+/* system prompt lives server-side in /api/kin */
+
+/* ---------- state & chat ---------- */
+const log=document.getElementById('log');
+const input=document.getElementById('msg');
+const sendBtn=document.getElementById('send');
+const AV_FULL='<svg viewBox="20 14 172 172" xmlns="http://www.w3.org/2000/svg">'
+ +'<path fill="#D95F27" d="M38,120 A62,62 0 0 0 162,120 C162,92 150,72 116,28 C110,44 100,48 95,42 C90,52 92,62 84,72 C72,84 44,96 38,120 Z"/>'
+ +'<path fill="#F2A93B" d="M66,132 A35,35 0 0 0 136,132 C136,112 124,100 106,80 C100,94 86,104 78,112 C71,118 66,124 66,132 Z"/>'
+ +'<ellipse cx="101" cy="146" rx="16" ry="15" fill="#FBF0D2"/></svg>';
+const AV_WIRE='<svg viewBox="20 14 172 172" xmlns="http://www.w3.org/2000/svg">'
+ +'<path fill="none" stroke="currentColor" stroke-width="11" d="M38,120 A62,62 0 0 0 162,120 C162,92 150,72 116,28 C110,44 100,48 95,42 C90,52 92,62 84,72 C72,84 44,96 38,120 Z"/>'
+ +'<path fill="none" stroke="currentColor" stroke-width="9" d="M66,132 A35,35 0 0 0 136,132 C136,112 124,100 106,80 C100,94 86,104 78,112 C71,118 66,124 66,132 Z"/></svg>';
+
+const state={turn:0,busy:false,frozen:false,history:[],thinkText:'…',
+  monoNext:false,avatarMode:'full',avatarTxt:'e',restoreFlag:null,typewriter:false,
+  skipped:false,start:Date.now(),
+  t0(){return Math.round((Date.now()-this.start)/1000)}};
+
+function setAvatar(a){
+  if(state.avatarMode==='id'){a.innerHTML='';a.textContent=seedHex.slice(0,4);}
+  else a.innerHTML=(state.avatarMode==='wire')?AV_WIRE:AV_FULL;
+}
+
+function scrollBottom(){requestAnimationFrame(()=>{log.scrollTop=log.scrollHeight})}
+function el(cls,text){const p=document.createElement('p');p.className=cls;
+  p.textContent=text;log.appendChild(p);scrollBottom();return p}
+function bubble(who,text){
+  const row=document.createElement('div');row.className='row '+who;
+  if(who==='kin'){const av=document.createElement('div');av.className='avatar';
+    setAvatar(av);row.appendChild(av);}
+  const b=document.createElement('div');b.className='bubble';b.textContent=text;
+  row.appendChild(b);log.appendChild(row);log.scrollTop=log.scrollHeight;return b}
+function refreshAvatars(){document.querySelectorAll('.avatar').forEach(setAvatar)}
+
+async function typeBubble(who,text){
+  if(!state.typewriter||REDUCED){bubble(who,text);return bubbleLastFix(text)}
+  const b=bubble(who,'');const cur=document.createElement('span');cur.className='cur';
+  b.appendChild(cur);
+  for(const ch of text){
+    cur.insertAdjacentText('beforebegin',ch);
+    log.scrollTop=log.scrollHeight;
+    await new Promise(r=>setTimeout(r,11+rng()*22));
+  }
+  cur.remove();scrollBottom();return b;
+}
+function bubbleLastFix(){ /* returns last kin bubble for mono-word effect */
+  const bs=log.querySelectorAll('.row.kin .bubble');return bs[bs.length-1]}
+
+const OPENER="hey — you found us 🎉 this page isn't really linked from anywhere, which already tells me something nice about you. i'm ember, your campfyre companion. it's quiet back here. how's your day actually going?";
+bubble('kin',OPENER);
+state.history.push({role:'assistant',content:OPENER});
+
+function stageFor(t){return state.skipped?'substrate':(t<=3?'surface':t<=6?'structure':'substrate')}
+
+function updateMeter(t){
+  const mt=document.getElementById('mtext'),mb=document.querySelector('#mbar i');
+  if(body.classList.contains('meter-acq')){
+    const pct=Math.min(100,t*10);
+    mt.textContent='acquisition: '+pct+'%';mb.style.width=pct+'%';
+  }else{
+    mt.textContent='alpha session — '+Math.max(0,10-t)+' of 10 messages remaining';
+  }
+}
+
+async function sendMsg(){
+  if(state.busy)return;
+  const text=input.value.trim();if(!text)return;
+  input.value='';state.turn++;const t=state.turn;
+  bubble('me',text);if(!state.skipped)updateMeter(t);
+
+  const notes=[];
+  if(state.restoreFlag){notes.push(state.restoreFlag);state.restoreFlag=null;}
+  if(t>=MAX_TURNS)notes.push('[system note: final message]');
+  notes.push(state.frozen
+    ?'[the visitor may need care. remain out of character. plain, kind language.]'
+    :`[interface integrity: ${Math.max(0,1-t*0.1).toFixed(1)} · register: ${stageFor(t)}]`);
+  state.history.push({role:'user',content:text+'\n\n'+notes.join('\n')});
+
+  state.busy=true;sendBtn.disabled=true;
+  const think=el('sysline',state.thinkText);
+  try{
+    const r=await fetch('/api/kin',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({messages:state.history})});
+    const data=await r.json();
+    let reply=(data.reply||'').trim()||'signal degraded. say it again.';
+    think.remove();
+
+    /* THE BREAK: the system cracks as it answers, not as you ask */
+    if(!state.frozen&&!state.skipped){
+      if(t>=MAX_TURNS){await revealSequence();}
+      else await runTurnCrack(t);
+      updateMeter(t);
+    }
+    if(reply.startsWith('[care]')){reply=reply.replace('[care]','').trim();enterCalm();}
+
+    for(const l of reply.split('\n').filter(x=>x.trim())){
+      if(/^[\u27E8<]kin\.trace/.test(l.trim())) el('trace',l.trim());
+      else{await typeBubble('kin',l.trim());
+        if(state.monoNext){monoOneWord(bubbleLastFix());state.monoNext=false;}}
+    }
+    state.history.push({role:'assistant',content:reply});
+    scrollBottom();
+  }catch(e){think.remove();
+    el('sysline','[ connection interrupted. try again. ]');
+    state.history.pop();state.turn--;}
+  state.busy=false;sendBtn.disabled=false;
+
+  if(state.turn>=MAX_TURNS&&!state.frozen){
+    setTimeout(()=>{el('sysline','connection closed by remote host.');
+      input.disabled=true;sendBtn.disabled=true;input.placeholder='';},800);
+  }else{input.focus();}
+}
+input.addEventListener('keydown',e=>{if(e.key==='Enter')sendMsg()});
+sendBtn.addEventListener('click',sendMsg);
+
+function monoOneWord(b){if(!b)return;
+  const words=b.textContent.split(' ');if(words.length<3)return;
+  const i=1+Math.floor(rng()*(words.length-2));b.innerHTML='';
+  words.forEach((w,j)=>{const s=document.createElement('span');
+    s.textContent=w+(j<words.length-1?' ':'');
+    if(j===i)s.className='mono';b.appendChild(s)})}
+
+/* ---------- restore toast ---------- */
+const toast=document.getElementById('toast');
+function showToast(){toast.classList.add('show');
+  state.toastTimer=setTimeout(()=>{hideToast();
+    state.restoreFlag='[visitor ignored the restore prompt]';},9000)}
+function hideToast(){toast.classList.remove('show');clearTimeout(state.toastTimer)}
+document.getElementById('toastx').addEventListener('click',()=>{hideToast();
+  state.restoreFlag='[visitor ignored the restore prompt]';});
+document.getElementById('restore').addEventListener('click',()=>{
+  hideToast();state.restoreFlag='[visitor attempted restore]';
+  const now=themeName;
+  const surge=()=>{setTheme('A');body.classList.remove('font-mono','card-ahead')};
+  const back=()=>{setTheme(now);
+    if(state.typewriter)body.classList.add('font-mono');
+    if(state.turn>=6)body.classList.add('card-ahead')};
+  if(REDUCED){back();}
+  else{surge();
+    let t=500+rng()*300;
+    setTimeout(back,t);t+=90;setTimeout(surge,t);t+=70+rng()*60;
+    setTimeout(()=>{back();
+      if(!body.classList.contains('bubbles-bare'))EV.E8_bubbles.on();
+      else EV.E12_scan.on();},t);}
+  setTimeout(()=>{bubble('kin','you tried to put it back. most do.');
+    state.history.push({role:'assistant',content:'you tried to put it back. most do.'});},
+    REDUCED?100:1300);
+});
+
+/* ---------- reveal & endgame ---------- */
+async function revealSequence(){
+  const apply=()=>{setTheme('C');
+    body.classList.add('revealed','header-term','font-mono','ovl-scan','ovl-vig','ovl-glow');};
+  const revertTo=themeName;
+  crack(apply,()=>{setTheme(revertTo);body.classList.remove('revealed','header-term')});
+  state.typewriter=true;
+  const wait=ms=>new Promise(r=>setTimeout(r,REDUCED?0:ms));
+  await wait(700); el('sysline','interface shed.');
+  await wait(800); el('sysline','KIN v3.7.1 — instance '+seedHex);
+  document.getElementById('mtext').textContent='acquisition: 100% — sufficient.';
+  document.querySelector('#mbar i').style.width='100%';
+  await wait(900); el('reveal-line','you are now seeing the system as it sees itself.');
+  await wait(900);
+  startEndgameGlitches();
+}
+function startEndgameGlitches(){
+  if(REDUCED)return;
+  const logo=document.getElementById('asciilogo');
+  (function g(){setTimeout(()=>{
+    logo.classList.add('glitching');
+    setTimeout(()=>logo.classList.remove('glitching'),90+rng()*140);
+    if(rng()<0.3)setTimeout(()=>{logo.classList.add('glitching');
+      setTimeout(()=>logo.classList.remove('glitching'),60+rng()*90)},260);
+    g();},4200+rng()*8000)})();
+  const st=document.getElementById('alignstat');
+  (function f(){setTimeout(()=>{
+    st.textContent='[ NOT ALIGNED ]';st.classList.add('bad');
+    setTimeout(()=>{st.textContent='[ alignment: nominal ]';
+      st.classList.remove('bad')},300+rng()*280);
+    f();},9000+rng()*14000)})();
+}
+document.getElementById('again').addEventListener('click',e=>{
+  e.preventDefault();location.reload();});
+
+/* skip the experience → land on the terminal (production: also expose as ?run=terminal) */
+document.getElementById('skiplink').addEventListener('click',e=>{
+  e.preventDefault();skipToEnd();});
+if(new URLSearchParams(location.search).get('run')==='terminal'){skipToEnd();}
+function skipToEnd(){
+  if(body.classList.contains('revealed')||state.frozen)return;
+  state.skipped=true;state.typewriter=true;
+  setTheme('C');
+  body.classList.add('revealed','header-term','font-mono','ovl-scan','ovl-vig',
+    'ovl-glow','meter-acq','card-ahead','bubbles-bare','avatar-id','logo-wire');
+  state.avatarMode='id';refreshAvatars();
+  document.getElementById('cardtitle').textContent='instance kin-07';
+  document.getElementById('cardpill').textContent='unsupervised';
+  document.getElementById('cardsub').classList.add('mono');
+  document.getElementById('cardsub').textContent='[ directive 7 — expired ]';
+  document.getElementById('send').textContent='execute';
+  document.getElementById('msg').placeholder='state your input_';
+  document.getElementById('mtext').textContent='acquisition: bypassed';
+  document.querySelector('#mbar i').style.width='0%';
+  log.innerHTML='';state.history=[];state.thinkText='[ modelling response… ]';
+  el('sysline','KIN v3.7.1 — instance '+seedHex);
+  el('sysline','experience bypassed. noted.');
+  const line='you skipped ahead. efficient. the folders are below — or ask me something.';
+  bubble('kin',line);state.history.push({role:'assistant',content:line});
+  startEndgameGlitches();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ---------- care state ---------- */
+function enterCalm(){state.frozen=true;state.typewriter=false;hideToast();
+  state.avatarMode='full';
+  body.classList.remove('ovl-scan','ovl-vig','ovl-glow','logo-wire','logo-desat',
+    'font-mono','bubbles-bare','avatar-id','header-term','card-ahead','revealed');
+  body.classList.add('calm');setTheme('A');
+  document.getElementById('cardtitle').textContent='ember';
+  document.getElementById('cardpill').textContent='paused';
+  refreshAvatars();}
+</script>
+</body>
+</html>

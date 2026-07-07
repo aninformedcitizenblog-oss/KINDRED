@@ -1,0 +1,8 @@
+# aninformedcitizen.com — KINDRED
+
+> Official site for KINDRED, a speculative thriller by James Richard Brown, serialised weekly in 2026. Origin of the term "Large Social Model" (LSM).
+
+## Key pages
+- [What is a Large Social Model?](https://www.aninformedcitizen.com/signal): canonical definition of the LSM concept — an AI trained on human behaviour rather than text; how it differs from an LLM; origins of the term.
+- [Dossiers](https://www.aninformedcitizen.com/dossiers): in-world character files from the novel, updated weekly.
+- [The novel](https://aninformedcitizen.substack.com/p/kindred-the-bunker): start reading KINDRED at the Bunker.
