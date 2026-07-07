@@ -17,20 +17,26 @@
   .termbar a{color:var(--phos);text-decoration:none;margin-left:14px}
   .termbar a:hover{text-decoration:underline}
   .termbar .crumbs a{margin-left:0;margin-right:14px}
-  body{background:#FAFAF7;color:#1E1B18;font-family:'Inter',system-ui,sans-serif;
-    font-size:17px;line-height:1.75}
-  main{max-width:680px;margin:0 auto;padding:44px 22px 80px}
-  .kinline{font-family:'IBM Plex Mono',monospace;font-size:12.5px;color:#6B7A6E;margin-bottom:36px}
-  h1{font-size:34px;font-weight:700;letter-spacing:-.02em;line-height:1.2;margin-bottom:22px}
-  h2{font-size:21px;font-weight:600;letter-spacing:-.01em;margin:40px 0 12px}
-  h3{font-size:16.5px;font-weight:600;margin:24px 0 6px}
-  p{margin-bottom:14px}
-  .definition{font-weight:500;font-size:18.5px;line-height:1.7;border-left:3px solid #C2481F;
-    padding:4px 0 4px 18px;margin:0 0 18px}
-  .note{color:#5B564F;font-size:15px}
-  a{color:#C2481F}
-  strong{font-weight:600}
-  footer.pageend{max-width:680px;margin:0 auto;padding:0 22px 60px;color:#8A847B;font-size:13.5px}
+  body{background:var(--void);color:var(--phos);font-family:'IBM Plex Mono',monospace;
+    font-size:13.5px;line-height:1.7}
+  .scan{position:fixed;inset:0;pointer-events:none;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px);mix-blend-mode:multiply}
+  main{max-width:760px;margin:0 auto;padding:36px 20px 70px;position:relative}
+  .cmd{color:var(--dim);letter-spacing:.1em;font-size:14px;margin-bottom:20px}
+  .kinline{color:var(--mid);margin:0 0 30px;max-width:64ch}
+  h1{font-size:26px;font-weight:500;color:var(--phos);letter-spacing:-.01em;line-height:1.25;margin-bottom:22px}
+  h2{font-size:13.5px;font-weight:500;color:var(--dim);letter-spacing:.08em;margin:38px 0 12px}
+  h2::before{content:"## ";color:var(--line)}
+  h3{font-size:13.5px;font-weight:500;color:var(--mid);margin:22px 0 6px}
+  h3::before{content:"> ";color:var(--dim)}
+  p{margin-bottom:14px;max-width:64ch;color:var(--mid)}
+  .definition{color:var(--phos);border:1px dashed var(--line);border-left:3px solid var(--mid);
+    padding:16px 20px;margin:0 0 22px;max-width:66ch;line-height:1.75}
+  .note{color:var(--dim);font-size:12.5px}
+  a{color:var(--phos)}
+  em{color:var(--phos);font-style:italic}
+  strong{color:var(--phos);font-weight:500}
+  footer.pageend{max-width:760px;margin:0 auto;padding:0 20px 60px;color:var(--dim);font-size:11.5px}
 
 </style>
 </head>
@@ -40,7 +46,9 @@
     <a href="/?run=terminal">/terminal</a><a href="/signal">/signal</a><a href="/dossiers">/dossiers</a><a href="https://aninformedcitizen.substack.com/p/kindred-the-bunker">/bunker</a><a href="https://aninformedcitizen.substack.com/subscribe">/subscribe</a>
   </span>
 </div>
+<div class="scan"></div>
 <main>
+  <p class="cmd">root@KIN:~# cat /signal/definition.txt</p>
   <p class="kinline">the author insisted this file stay legible. i complied. — KIN</p>
 
   <h1>What is a Large Social Model?</h1>
