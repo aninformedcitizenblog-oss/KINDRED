@@ -627,7 +627,7 @@ function startEndgameGlitches(){
     f();},9000+rng()*14000)})();
 }
 document.getElementById('again').addEventListener('click',e=>{
-  e.preventDefault();location.reload();});
+  e.preventDefault();location.href=location.pathname;});
 
 /* skip the experience → land on the terminal (production: also expose as ?run=terminal) */
 document.getElementById('skiplink').addEventListener('click',e=>{
