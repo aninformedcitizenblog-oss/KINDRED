@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>campfyre — ember (alpha)</title>
 <meta name="description" content="A warmer way to connect. ember is an early conversation experiment from Campfyre Labs.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700&family=DM+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -519,7 +520,7 @@ async function sendMsg(){
   if(t>=MAX_TURNS)notes.push('[system note: final message]');
   notes.push(state.frozen
     ?'[the visitor may need care. remain out of character. plain, kind language.]'
-    :`[interface integrity: ${Math.max(0,1-t*0.1).toFixed(1)} · register: ${stageFor(t)}]`);
+    :`[interface integrity: ${Math.max(0,1-t*0.1).toFixed(1)} · register: ${stageFor(t)} · visitor messages remaining after this one: ${MAX_TURNS-t}]`);
   state.history.push({role:'user',content:text+'\n\n'+notes.join('\n')});
 
   state.busy=true;sendBtn.disabled=true;
